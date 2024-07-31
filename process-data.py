@@ -31,7 +31,7 @@ for i, row in df.iloc[2:].iterrows():
         labels = list(map(lambda label: label.lstrip('左'), labels))
         label_data[char]['left'] = labels
         excel_sb = left_data.iloc[2]
-        my_sb = sb_data[char]['Regular']['lsb']
+        my_sb = sb_data['Regular'][char]['lsb']
         if excel_sb != my_sb:
             print(f'{char} (L): {excel_sb} != {my_sb}')
 
@@ -43,7 +43,7 @@ for i, row in df.iloc[2:].iterrows():
         labels = list(map(lambda label: label.lstrip('右'), labels))
         label_data[char]['right'] = labels
         excel_sb = right_data.iloc[2]
-        my_sb = sb_data[char]['Regular']['rsb']
+        my_sb = sb_data['Regular'][char]['rsb']
         if excel_sb != my_sb:
             print(f'{char} (R): {excel_sb} != {my_sb}')
 
@@ -55,7 +55,7 @@ for i, row in df.iloc[2:].iterrows():
         labels = list(map(lambda label: label if label == '⺨' else label[1:].rstrip('顶'), labels))
         label_data[char]['top'] = labels
         excel_sb = top_data.iloc[2]
-        my_sb = sb_data[char]['Regular']['tsb']
+        my_sb = sb_data['Regular'][char]['tsb']
         if excel_sb != my_sb:
             print(f'{char} (T): {excel_sb} != {my_sb}')
 
@@ -67,7 +67,7 @@ for i, row in df.iloc[2:].iterrows():
         labels = list(map(lambda label: label.lstrip('下'), labels))
         label_data[char]['bottom'] = labels
         excel_sb = bottom_data.iloc[2]
-        my_sb = sb_data[char]['Regular']['bsb']
+        my_sb = sb_data['Regular'][char]['bsb']
         if excel_sb != my_sb:
             print(f'{char} (B): {excel_sb} != {my_sb}')
 
