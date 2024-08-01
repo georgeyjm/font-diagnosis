@@ -3,6 +3,12 @@ import itertools
 from scipy import stats
 
 
+def get_glyph(font, char):
+    for glyph in font.glyphs:
+        if char in (glyph.string, glyph.id):
+            return glyph
+
+
 def read_side_bearings(font, weights=('ExtraLight','Regular','Black')):
     # Get baseline offset and height data
     baseline = {}
@@ -45,57 +51,45 @@ def dist_between_rankings(sb_data, direction):
     scores = []
     common_chars = list(set.intersection(*[set(sb_data[weight].keys()) for weight in weights])) # List is important to guarantee stable sort
     for weight1, weight2 in itertools.combinations(weights, 2): # Can shorten to combining weights.values()
-        ranking1 = sorted(common_chars, key=lambda k: sb_data[weight1][k][direction], reverse=True)
-        ranking2 = sorted(common_chars, key=lambda k: sb_data[weight2][k][direction], reverse=True)
+        ranking1 = sorted(common_chars, key=lambda char: sb_data[weight1][char][direction])
+        ranking2 = sorted(common_chars, key=lambda char: sb_data[weight2][char][direction])
         tau = stats.kendalltau(ranking1, ranking2)
-        scores.append(tau.statistic)
-    return scores
+        scores.append((weight1, weight2, tau.statistic))
+    return scores, ranking1, ranking2
 
 
 def compare_node_to_record(node, record, direction):
+    coord = get_coord_at_direction(node, direction)
     if record is None:
-        if direction in ('lsb', 'rsb'):
-            return 1, node.position.x
-        else:
-            return 1, node.position.y
-    if direction == 'lsb':
-        if node.position.x < record:
-            return 1, node.position.x
-        elif node.position.x == record:
+        return 1, coord
+    if direction in ('lsb', 'bsb'):
+        if coord < record:
+            return 1, coord
+        elif coord == record:
             return 0, record
         return -1, record
-    elif direction == 'rsb':
-        if node.position.x > record:
-            return 1, node.position.x
-        elif node.position.x == record:
+    else:
+        if coord > record:
+            return 1, coord
+        elif coord == record:
             return 0, record
         return -1, record
-    elif direction == 'tsb':
-        if node.position.y > record:
-            return 1, node.position.y
-        elif node.position.y == record:
-            return 0, record
-        return -1, record
-    elif direction == 'bsb':
-        if node.position.y < record:
-            return 1, node.position.y
-        elif node.position.y == record:
-            return 0, record
-        return -1, record
+
+
+def get_coord_at_direction(node, direction, opposite=False):
+    '''Returns the respective node coordinate at the given direction.'''
+    if opposite:
+        return node.position.y if direction in ('lsb', 'rsb') else node.position.x
+    return node.position.x if direction in ('lsb', 'rsb') else node.position.y
 
 
 def get_midpoint(node_start, node_end, direction):
     if direction in ('lsb', 'rsb'):
         return (node_start.position.y + node_end.position.y) / 2
-    else:
-        return (node_start.position.x + node_end.position.x) / 2
+    return (node_start.position.x + node_end.position.x) / 2
 
 
-def get_distribution_coord(node, direction):
-    return node.position.y if direction in ('lsb', 'rsb') else node.position.x
-
-
-def get_outermost_stroke_points(layer, direction):
+def get_outermost_strokes(layer, direction):
     direction = direction.lower()
     assert direction in ('lsb', 'rsb', 'tsb', 'bsb')
 
@@ -150,10 +144,10 @@ def get_outermost_range(layer, direction):
                 continue
             elif comparison == 1: # Breaks outermost record
                 record = new_record
-                coord = get_distribution_coord(node, direction)
+                coord = get_coord_at_direction(node, direction, opposite=True)
                 outermost_range = [coord, coord]
             else: # Same with current record
-                coord = get_distribution_coord(node, direction)
+                coord = get_coord_at_direction(node, direction, opposite=True)
                 if None in outermost_range: # First time updating
                     outermost_range = [coord, coord]
                 elif coord < outermost_range[0]:
@@ -161,9 +155,3 @@ def get_outermost_range(layer, direction):
                 elif coord > outermost_range[1]:
                     outermost_range[1] = coord
     return outermost_range, record
-
-
-def get_glyph(font, char):
-    for glyph in font.glyphs:
-        if glyph.string == char or glyph.id == char:
-            return glyph
