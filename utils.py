@@ -91,11 +91,15 @@ def get_midpoint(node_start, node_end, direction):
         return (node_start.position.x + node_end.position.x) / 2
 
 
+def get_distribution_coord(node, direction):
+    return node.position.y if direction in ('lsb', 'rsb') else node.position.x
+
+
 def get_outermost_stroke_points(layer, direction):
     direction = direction.lower()
     assert direction in ('lsb', 'rsb', 'tsb', 'bsb')
 
-    # Idea: any adjacent outermost point counts as one
+    # Idea: all adjacent outermost point counts as one stroke
     record = None
     outermost_points = []
     stroke_start = None
@@ -125,11 +129,38 @@ def get_outermost_stroke_points(layer, direction):
             outermost_points.append(get_midpoint(stroke_start, stroke_end, direction))
             stroke_start = None
             stroke_end = None
-    return record, outermost_points
+    return outermost_points, record
 
 
-def get_outermost_point_range(layer, direction):
-    pass
+def get_outermost_range(layer, direction):
+    direction = direction.lower()
+    assert direction in ('lsb', 'rsb', 'tsb', 'bsb')
+
+    record = None
+    outermost_range = [-1, None]
+    for path in layer.paths:
+        # Possible optimization: check bound of each path to see if it lies within record
+        for node in path.nodes:
+            if node.type == 'offcurve':
+                # Skip handle nodes
+                # IMPORTANT: This assumes that outermost pixels are determined by nodes, rather than curves, which is also best practice
+                continue
+            comparison, new_record = compare_node_to_record(node, record, direction)
+            if comparison == -1: # Does not break record
+                continue
+            elif comparison == 1: # Breaks outermost record
+                record = new_record
+                coord = get_distribution_coord(node, direction)
+                outermost_range = [coord, coord]
+            else: # Same with current record
+                coord = get_distribution_coord(node, direction)
+                if None in outermost_range: # First time updating
+                    outermost_range = [coord, coord]
+                elif coord < outermost_range[0]:
+                    outermost_range[0] = coord
+                elif coord > outermost_range[1]:
+                    outermost_range[1] = coord
+    return outermost_range, record
 
 
 def get_glyph(font, char):
