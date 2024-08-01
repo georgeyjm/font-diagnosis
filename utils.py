@@ -53,6 +53,11 @@ def dist_between_rankings(sb_data, direction):
 
 
 def compare_node_to_record(node, record, direction):
+    if record is None:
+        if direction in ('lsb', 'rsb'):
+            return 1, node.position.x
+        else:
+            return 1, node.position.y
     if direction == 'lsb':
         if node.position.x < record:
             return 1, node.position.x
@@ -86,12 +91,12 @@ def get_midpoint(node_start, node_end, direction):
         return (node_start.position.x + node_end.position.x) / 2
 
 
-def get_outermost_points(layer, direction):
+def get_outermost_stroke_points(layer, direction):
     direction = direction.lower()
     assert direction in ('lsb', 'rsb', 'tsb', 'bsb')
 
     # Idea: any adjacent outermost point counts as one
-    record = 0 # This needs changing
+    record = None
     outermost_points = []
     stroke_start = None
     stroke_end = None
@@ -121,6 +126,10 @@ def get_outermost_points(layer, direction):
             stroke_start = None
             stroke_end = None
     return record, outermost_points
+
+
+def get_outermost_point_range(layer, direction):
+    pass
 
 
 def get_glyph(font, char):
