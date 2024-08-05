@@ -1,4 +1,5 @@
 import itertools
+import random
 
 from scipy import stats
 
@@ -48,6 +49,8 @@ def dist_between_rankings(sb_data, direction):
     # IMPORTANT: We calculate Kendall's tau between ALL pairs of rankings.
     # This is to accommodate for one odd ranking in the middle having too much impact on the overall score.
     weights = list(sb_data.keys())
+    if len(weights) == 1:
+        return 1
     scores = []
     common_chars = list(set.intersection(*[set(sb_data[weight].keys()) for weight in weights])) # List is important to guarantee stable sort
     for weight1, weight2 in itertools.combinations(weights, 2): # Can shorten to combining weights.values()
@@ -56,6 +59,33 @@ def dist_between_rankings(sb_data, direction):
         tau = stats.kendalltau(ranking1, ranking2)
         scores.append((weight1, weight2, tau.statistic))
     return scores, ranking1, ranking2
+
+
+def dist_between_rankings_random_batches(sb_data, direction, batch_size=50, samples=100):
+    direction = direction.lower()
+    assert direction in ('lsb', 'rsb', 'tsb', 'bsb')
+
+    # Calculates Kendall's tau as a measure of distance between two rankings
+    # An alternative to consider is Rank Biased Overlap (RBO)
+    # IMPORTANT: We calculate Kendall's tau between ALL pairs of rankings.
+    # This is to accommodate for one odd ranking in the middle having too much impact on the overall score.
+    weights = list(sb_data.keys())
+    if len(weights) == 1:
+        return 1
+    scores = []
+    common_chars = list(set.intersection(*[set(sb_data[weight].keys()) for weight in weights])) # List is important to guarantee stable sort
+    for i in range(samples):
+        batch = random.choices(common_chars, k=batch_size) # Should we consider non-replacement?
+        batch_scores = []
+        for weight1, weight2 in itertools.combinations(weights, 2): # Can shorten to combining weights.values()
+            ranking1 = sorted(batch, key=lambda char: sb_data[weight1][char][direction])
+            ranking2 = sorted(batch, key=lambda char: sb_data[weight2][char][direction])
+            tau = stats.kendalltau(ranking1, ranking2)
+            batch_scores.append(tau.statistic)
+        scores.append(batch_scores)
+    # Calculate mean scores
+    scores = list(map(lambda s: sum(s) / len(s), zip(*scores)))
+    return scores
 
 
 def compare_node_to_record(node, record, direction):
