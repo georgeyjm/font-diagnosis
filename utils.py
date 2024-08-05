@@ -1,15 +1,18 @@
-import itertools
 import random
+import itertools
+from functools import lru_cache
 
 from scipy import stats
 
 
+@lru_cache
 def get_glyph(font, char):
     for glyph in font.glyphs:
         if char in (glyph.string, glyph.id):
             return glyph
 
 
+@lru_cache
 def get_layer_by_name(glyph, layer_name):
     for layer in glyph.layers:
         if layer_name == layer.name:
@@ -162,6 +165,7 @@ def get_outermost_strokes(layer, direction):
     return outermost_points, record
 
 
+@lru_cache
 def get_outermost_range(layer, direction):
     direction = direction.lower()
     assert direction in ('lsb', 'rsb', 'tsb', 'bsb')
