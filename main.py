@@ -13,7 +13,9 @@ STROKE_LABELS_FILE = 'char-labels.json'
 WEIGHTS = ('ExtraLight', 'Regular', 'Heavy')
 DIRECTIONS = ('lsb', 'rsb', 'tsb', 'bsb')
 OUTPUT_FILE = 'glyphs_data.xlsx'
-RANGE_COL_NAMES = {'lsb': '最左笔画范围', 'rsb': '最右笔画范围', 'tsb': '最上笔画范围', 'bsb': '最下笔画范围'}
+RANGE_COL_NAMES = {'lsb': '最左树枝笔画范围', 'rsb': '最右树枝笔画范围', 'tsb': '最上树枝笔画范围', 'bsb': '最下树枝笔画范围'}
+LABEL_DIRECTION_TRANSLATE = {'lsb': 'left', 'rsb': 'right', 'tsb': 'top', 'bsb': 'bottom'}
+OUTPUT_ALL_RANGES = False
 
 
 print('Reading Glyphs file...')
@@ -38,14 +40,37 @@ df['字符'] = df['字符'].astype(str)
 print('Populating dataframe...')
 for i, glyph in enumerate(tqdm(font.glyphs)):
     row = [glyph.id, glyph.string]
+    if not OUTPUT_ALL_RANGES:
+        labels = char_labels.get(glyph.string)
+        glyph_labels = {}
+        if labels is None:
+            # Maybe we should notify this
+            pass
+        else:
+            for direction in DIRECTIONS:
+                strokes = labels.get(LABEL_DIRECTION_TRANSLATE[direction])
+                if not strokes:
+                    continue
+                glyph_labels[direction] = True # Don't need to store strokes for now
+                # glyph_labels[direction] = strokes
     for weight in WEIGHTS:
         layer = get_layer_by_name(glyph, weight)
         glyph_sb = sb_data[weight].get(glyph.string) # TODO: key should be ID instead of string
         if glyph_sb is None:
             row += [None] * len(DIRECTIONS) * 3
-        else:
-            row += list(map(lambda direction: glyph_sb[direction], DIRECTIONS))
+            print(row)
+            continue
+        row += list(map(lambda direction: glyph_sb[direction], DIRECTIONS))
+        # Output all ranges of all directions
+        if OUTPUT_ALL_RANGES:
             row += list(chain(*map(lambda direction: get_outermost_range(layer, direction)[0], DIRECTIONS)))
+            continue
+        # Output only ranges which correspond to directions with branch strokes
+        for direction in DIRECTIONS:
+            if glyph_labels.get(direction):
+                row += get_outermost_range(layer, direction)[0]
+            else:
+                row += [None] * 2
     df.loc[i] = row
 
 print('Exporting to excel file...')
@@ -57,26 +82,27 @@ writer.sheets['字符数据'] = worksheet
 df.to_excel(writer, sheet_name='字符数据', index=False, startrow=1)
 
 # Make header pretty
-merge_format = workbook.add_format({'align': 'center', 'bold': True})
-header_format = workbook.add_format({'bold': True})
-merge_format.set_align('vcenter')
-# header_format.set_align('vcenter')
-worksheet.set_row(1, 30, header_format)
-worksheet.set_row(1, 30, header_format)
-worksheet.merge_range('A1:A2', columns[0], merge_format)
-worksheet.merge_range('B1:B2', columns[1], merge_format)
+header_format = workbook.add_format({'align': 'center', 'valign': 'vcenter', 'bold': True, 'border': 0})
+vcenter_format = workbook.add_format({'valign': 'vcenter'})
+# border_format = workbook.add_format({'right': 2})
+worksheet.merge_range('A1:A2', columns[0], header_format)
+worksheet.merge_range('B1:B2', columns[1], header_format)
 for i, weight in enumerate(WEIGHTS):
     weight_col = i * len(DIRECTIONS) * 3 + 2
-    worksheet.merge_range(0, weight_col, 0, weight_col + len(DIRECTIONS) * 3 - 1, weight, merge_format)
+    worksheet.merge_range(0, weight_col, 0, weight_col + len(DIRECTIONS) * 3 - 1, weight, header_format)
     for j, direction in enumerate(DIRECTIONS):
         worksheet.write(1, weight_col + j, DIRECTIONS[j].upper())
         dir_col = weight_col + len(DIRECTIONS) + j * 2
         col_name = RANGE_COL_NAMES[direction]
-        worksheet.merge_range(1, dir_col, 1, dir_col + 1, col_name, merge_format)
-vcenter_format = workbook.add_format()
-vcenter_format.set_align('vcenter')
+        worksheet.merge_range(1, dir_col, 1, dir_col + 1, col_name, header_format)
+worksheet.set_row(0, 30, header_format)
+worksheet.set_row(1, 30, header_format)
 worksheet.set_column('A:XFD', None, vcenter_format)
+# for i in range(len(WEIGHTS)):
+#     col = 1 + i * len(DIRECTIONS) * 3
+#     worksheet.set_column(col, col, None, border_format)
 writer.close()
+print('Done.')
 
 # fixed_columns = ['ID', '字符']
 # weight_columns = [d.upper() for d in DIRECTIONS] + list(chain([f'{d}-range1', f'{d}-range2'] for d in DIRECTIONS))

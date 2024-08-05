@@ -28,7 +28,7 @@ for i, row in df.iloc[2:].iterrows():
     if not pd.isna(char): # Avoid empty subrow
         labels = left_data.iloc[3:5].dropna().tolist()
         assert all(label.startswith('左') for label in labels)
-        labels = list(map(lambda label: label.lstrip('左'), labels))
+        labels = list(map(lambda label: label.lstrip('左').strip(), labels))
         label_data[char]['left'] = labels
         excel_sb = left_data.iloc[2]
         my_sb = sb_data['Regular'][char]['lsb']
@@ -40,7 +40,7 @@ for i, row in df.iloc[2:].iterrows():
     if not pd.isna(char): # Avoid empty subrow
         labels = right_data.iloc[3:5].dropna().tolist()
         assert all(label.startswith('右') for label in labels)
-        labels = list(map(lambda label: label.lstrip('右'), labels))
+        labels = list(map(lambda label: label.lstrip('右').strip(), labels))
         label_data[char]['right'] = labels
         excel_sb = right_data.iloc[2]
         my_sb = sb_data['Regular'][char]['rsb']
@@ -52,7 +52,7 @@ for i, row in df.iloc[2:].iterrows():
     if not pd.isna(char): # Avoid empty subrow
         labels = top_data.iloc[3:6].dropna().tolist()
         assert all(label.endswith('顶') or label == '⺨' for label in labels)
-        labels = list(map(lambda label: label if label == '⺨' else label[1:].rstrip('顶'), labels))
+        labels = list(map(lambda label: label if label == '⺨' else label[1:].rstrip('顶').strip(), labels))
         label_data[char]['top'] = labels
         excel_sb = top_data.iloc[2]
         my_sb = sb_data['Regular'][char]['tsb']
@@ -64,7 +64,7 @@ for i, row in df.iloc[2:].iterrows():
     if not pd.isna(char): # Avoid empty subrow
         labels = bottom_data.iloc[3:6].dropna().tolist()
         assert all(label.startswith('下') for label in labels)
-        labels = list(map(lambda label: label.lstrip('下'), labels))
+        labels = list(map(lambda label: label.lstrip('下').strip(), labels))
         label_data[char]['bottom'] = labels
         excel_sb = bottom_data.iloc[2]
         my_sb = sb_data['Regular'][char]['bsb']
