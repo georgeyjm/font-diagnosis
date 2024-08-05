@@ -10,6 +10,12 @@ def get_glyph(font, char):
             return glyph
 
 
+def get_layer_by_name(glyph, layer_name):
+    for layer in glyph.layers:
+        if layer_name == layer.name:
+            return layer
+
+
 def read_side_bearings(font, weights=('ExtraLight','Regular','Black')):
     # Get baseline offset and height data
     baseline = {}
