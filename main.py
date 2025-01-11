@@ -16,7 +16,7 @@ OUTPUT_FILE = 'glyphs_data.xlsx'
 RANGE_COL_NAMES = {'lsb': '最左树枝笔画范围', 'rsb': '最右树枝笔画范围', 'tsb': '最上树枝笔画范围', 'bsb': '最下树枝笔画范围'}
 LABEL_DIRECTION_TRANSLATE = {'lsb': 'left', 'rsb': 'right', 'tsb': 'top', 'bsb': 'bottom'}
 OUTPUT_ALL_RANGES = False
-DEBUG = True # If True, will not output the data to any file
+DEBUG = False # If True, will not output the data to any file
 
 
 print('Reading Glyphs file...')
@@ -26,19 +26,9 @@ with open(STROKE_LABELS_FILE) as f:
     char_labels = json.load(f)
 # score = dist_between_rankings(sb_data, 'lsb')
 
-# Initialize main dataframe
-columns = ['ID', '字符']
-for weight in WEIGHTS:
-    for direction in DIRECTIONS:
-        columns.append(f'{weight}-{direction}')
-    for direction in DIRECTIONS:
-        columns.append(f'{weight}-{direction}-range1')
-        columns.append(f'{weight}-{direction}-range2')
-df = DataFrame(columns=columns)
-df['ID'] = df['ID'].astype(str)
-df['字符'] = df['字符'].astype(str)
-
+# Populate main dataframe
 print('Populating main dataframe...')
+rows = []
 for i, glyph in enumerate(tqdm(font.glyphs)):
     row = [glyph.id, glyph.string]
     if not OUTPUT_ALL_RANGES:
@@ -71,7 +61,18 @@ for i, glyph in enumerate(tqdm(font.glyphs)):
                 row += get_outermost_range(layer, direction)[0]
             else:
                 row += [None] * 2
-    df.loc[i] = row
+    rows.append(row)
+
+columns = ['ID', '字符']
+for weight in WEIGHTS:
+    for direction in DIRECTIONS:
+        columns.append(f'{weight}-{direction}')
+    for direction in DIRECTIONS:
+        columns.append(f'{weight}-{direction}-range1')
+        columns.append(f'{weight}-{direction}-range2')
+df = DataFrame(rows, columns=columns)
+df['ID'] = df['ID'].astype(str)
+df['字符'] = df['字符'].astype(str)
 
 
 # Populate dataframes for stroke sheets
@@ -80,11 +81,8 @@ stroke_dfs = {}
 for direction in DIRECTIONS:
     label_direction = LABEL_DIRECTION_TRANSLATE[direction]
     relevant_glyphs = list(filter(lambda g: char_labels.get(g.string, {}).get(label_direction), font.glyphs))
-    columns = ['ID', '字符', '标签']
-    for weight in WEIGHTS:
-        columns += map(lambda s: f'{weight}-{s}', [direction.upper(), '字形外侧笔画数', '范围起始', '范围结束'])
-    stroke_df = DataFrame(columns=columns)
     
+    rows = []
     for i, glyph in enumerate(tqdm(relevant_glyphs)):
         row = [glyph.id, glyph.string]
         row.append(' '.join(char_labels[glyph.string][label_direction]))
@@ -97,11 +95,15 @@ for direction in DIRECTIONS:
             layer = get_layer_by_name(glyph, weight)
             row.append(len(get_outermost_strokes(layer, direction)[0]))
             row += get_outermost_range(layer, direction)[0]
-        stroke_df.loc[i] = row
+        rows.append(row)
+    
+    columns = ['ID', '字符', '标签']
+    for weight in WEIGHTS:
+        columns += map(lambda s: f'{weight}-{s}', [direction.upper(), '字形外侧笔画数', '范围起始', '范围结束'])
+    stroke_df = DataFrame(rows, columns=columns)
 
     stroke_df.sort_values(by='标签', inplace=True)
     stroke_dfs[direction] = stroke_df
-
 
 if DEBUG:
     print('Done.')
