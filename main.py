@@ -16,6 +16,7 @@ OUTPUT_FILE = 'glyphs_data.xlsx'
 RANGE_COL_NAMES = {'lsb': '最左树枝笔画范围', 'rsb': '最右树枝笔画范围', 'tsb': '最上树枝笔画范围', 'bsb': '最下树枝笔画范围'}
 LABEL_DIRECTION_TRANSLATE = {'lsb': 'left', 'rsb': 'right', 'tsb': 'top', 'bsb': 'bottom'}
 OUTPUT_ALL_RANGES = False
+DEBUG = True # If True, will not output the data to any file
 
 
 print('Reading Glyphs file...')
@@ -101,6 +102,10 @@ for direction in DIRECTIONS:
     stroke_df.sort_values(by='标签', inplace=True)
     stroke_dfs[direction] = stroke_df
 
+
+if DEBUG:
+    print('Done.')
+    exit()
 
 print('Exporting to excel file...')
 writer = ExcelWriter(OUTPUT_FILE, engine='xlsxwriter')

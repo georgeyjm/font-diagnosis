@@ -158,10 +158,21 @@ def get_outermost_strokes(layer, direction):
                 if stroke_start is None: # Another stroke with the same record
                     stroke_start = node
                 stroke_end = node # Otherwise, currently on a record breaking stroke, still have to update end node
-        if stroke_end is not None: # Record breaking stroke has ended
+        if stroke_end is not None: # When outermost stroke ends with path (either individual stroke or one that extends into the initial nodes)
+            if path.closed and compare_node_to_record(path.nodes[0], record, direction)[0] == 0: # Check if the last stroke continues to the intial stroke (hence double counted)
+                del outermost_points[0] # Remove the incomplete initial stroke
+                for node in path.nodes: # Extend this stroke to the farthest initial node
+                    if node == stroke_start:
+                        break
+                    comparison, _ = compare_node_to_record(node, record, direction)
+                    if comparison == 0:
+                        stroke_end = node
+                    elif comparison == -1:
+                        break
             outermost_points.append(get_midpoint(stroke_start, stroke_end, direction))
             stroke_start = None
             stroke_end = None
+
     return outermost_points, record
 
 
